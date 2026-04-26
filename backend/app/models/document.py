@@ -10,7 +10,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Optional
 
@@ -53,13 +53,20 @@ class Document(Base):
 
     __tablename__ = "documents"
 
+    # Optimization: Composite index for paginated list queries
+    # (WHERE user_id = ? ORDER BY created_at DESC)
+    # This avoids a separate sort operation in the database.
+    __table_args__ = (
+        Index("idx_documents_user_created", "user_id", "created_at"),
+    )
+
     id: Mapped[str] = mapped_column(
         String(36),
         primary_key=True,
         default=lambda: str(uuid.uuid4()),
     )
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     filename: Mapped[str] = mapped_column(
         String(255), nullable=False
@@ -74,7 +81,9 @@ class Document(Base):
         Text, nullable=True
     )
     status: Mapped[ProcessingStatus] = mapped_column(
-        Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
+        Enum(ProcessingStatus),
+        default=ProcessingStatus.PENDING,
+        nullable=False
     )
     error_message: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
@@ -89,4 +98,8 @@ class Document(Base):
     owner = relationship("User", back_populates="documents")
 
     def __repr__(self) -> str:
-        return f"<Document(id={self.id}, filename={self.filename}, status={self.status.value})>"
+        return (
+            f"<Document(id={self.id}, "
+            f"filename={self.filename}, "
+            f"status={self.status.value})>"
+        )
