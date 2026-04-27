@@ -10,7 +10,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Optional
 
@@ -87,6 +87,11 @@ class Document(Base):
 
     # Relationships
     owner = relationship("User", back_populates="documents")
+
+    # Indexes
+    __table_args__ = (
+        Index("ix_documents_user_id_created_at", "user_id", "created_at"),
+    )
 
     def __repr__(self) -> str:
         return f"<Document(id={self.id}, filename={self.filename}, status={self.status.value})>"
