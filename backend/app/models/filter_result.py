@@ -9,7 +9,7 @@ references to the source documents and the LLM model used.
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Optional
 
@@ -73,6 +73,11 @@ class FilterResult(Base):
     owner = relationship("User", back_populates="filter_results")
     syllabus_document = relationship("Document", foreign_keys=[syllabus_doc_id])
     notes_document = relationship("Document", foreign_keys=[notes_doc_id])
+
+    # Indexes
+    __table_args__ = (
+        Index("ix_filter_results_user_id_created_at", "user_id", "created_at"),
+    )
 
     def __repr__(self) -> str:
         return f"<FilterResult(id={self.id}, model={self.model_used})>"

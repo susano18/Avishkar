@@ -165,19 +165,37 @@ async def list_documents(
     )
     total = count_result.scalar() or 0
 
-    # Fetch page
+    # Fetch page - explicitly exclude extracted_text to save bandwidth
+    # and compute its length instead. We include extracted_text=None to maintain
+    # schema compatibility without a breaking change.
     offset = (page - 1) * page_size
     result = await db.execute(
-        select(Document)
+        select(
+            Document.id,
+            Document.user_id,
+            Document.filename,
+            Document.file_type,
+            func.length(Document.extracted_text).label("extracted_text_length"),
+            Document.status,
+            Document.error_message,
+            Document.created_at,
+        )
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    documents = result.scalars().all()
+    rows = result.all()
+
+    # Convert rows to dicts and inject None for extracted_text to avoid breaking changes
+    documents = []
+    for row in rows:
+        d = dict(row._mapping)
+        d["extracted_text"] = None
+        documents.append(d)
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=documents,
         total=total,
         page=page,
         page_size=page_size,
