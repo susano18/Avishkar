@@ -29,7 +29,7 @@ from app.schemas.document import (
 from app.services.auth_service import get_current_user
 from app.services.input_handler import process_uploaded_file
 from app.services.llm_client import send_prompt
-from app.utils.exceptions import UnsupportedFileTypeError
+from app.utils.exceptions import FileTooLargeError, UnsupportedFileTypeError
 from app.utils.helpers import (
     detect_file_type,
     ensure_upload_dir,
@@ -57,6 +57,28 @@ async def upload_document(
 ) -> DocumentUploadResponse:
     """Upload a file, extract text, and create a document record."""
     filename = file.filename or "unknown"
+
+    # Validate file size (DoS protection)
+    # UploadFile.size is only available in more recent Starlette/FastAPI versions.
+    # If not present, we check the actual file size from the underlying file object.
+    file_size = getattr(file, "size", None)
+    if file_size is None:
+        try:
+            file.file.seek(0, 2)
+            file_size = file.file.tell()
+            file.file.seek(0)
+        except Exception:
+            file_size = None
+
+    if file_size and file_size > settings.max_upload_size_bytes:
+        logger.warning(
+            "upload_rejected_size_limit",
+            filename=filename,
+            size_bytes=file_size,
+            max_bytes=settings.max_upload_size_bytes,
+            user_id=current_user.id
+        )
+        raise FileTooLargeError(filename, settings.MAX_UPLOAD_SIZE_MB)
 
     # Validate file type
     if not is_supported_file(filename):
