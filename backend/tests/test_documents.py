@@ -8,6 +8,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from unittest.mock import patch
 from app.models.document import Document, FileType, ProcessingStatus
 from app.models.user import User
 
@@ -102,6 +103,29 @@ async def test_get_document_not_found(client: AsyncClient, auth_headers: dict):
         "/api/v1/documents/nonexistent-id", headers=auth_headers
     )
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Upload tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_upload_document_too_large(client: AsyncClient, auth_headers: dict):
+    """Test that uploading a file larger than the limit returns 413."""
+    # Mock settings to have a 0MB limit
+    with patch("app.api.documents.settings") as mock_settings:
+        mock_settings.MAX_UPLOAD_SIZE_MB = 0
+        mock_settings.max_upload_size_bytes = 0
+
+        files = {"file": ("test.txt", b"some content", "text/plain")}
+        response = await client.post(
+            "/api/v1/documents/upload",
+            headers=auth_headers,
+            files=files
+        )
+
+    assert response.status_code == 413
+    assert "exceeds the maximum upload size" in response.json()["message"]
 
 
 @pytest.mark.asyncio

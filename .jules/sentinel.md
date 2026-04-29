@@ -2,3 +2,8 @@
 **Vulnerability:** The registration endpoint (`/auth/register`) accepted a `role` field in the request body, allowing users to register themselves with any role, including `admin` or `educator`.
 **Learning:** Using a single model for both input validation and database representation without filtering sensitive fields can lead to mass assignment vulnerabilities. Pydantic models used for API requests should only include fields that users are explicitly allowed to provide.
 **Prevention:** 1) Use dedicated request schemas that exclude sensitive fields like `role`, `is_active`, or `permissions`. 2) Explicitly set sensitive defaults in the application logic rather than relying on request data. 3) Always verify user-provided data against the principle of least privilege.
+
+## 2026-04-29 - [Denial of Service (DoS) via Unbounded File Uploads]
+**Vulnerability:** The `/documents/upload` endpoint did not validate the size of uploaded files before saving them to disk and processing them, allowing an attacker to exhaust server resources (disk space, memory, CPU) by uploading excessively large files.
+**Learning:** Even if a `MAX_UPLOAD_SIZE_MB` is defined in settings, it must be explicitly enforced in the application code (e.g., in the FastAPI endpoint) if not already handled by a reverse proxy or middleware. Starlette's `UploadFile` might not always populate the `.size` attribute depending on the version/environment, necessitating a robust fallback like `seek(0, 2)` and `tell()`.
+**Prevention:** 1) Always validate file size immediately upon receipt in upload endpoints. 2) Use a robust method to determine file size that works across different environments/versions. 3) Raise standard HTTP 413 (Content Too Large) errors when limits are exceeded.
