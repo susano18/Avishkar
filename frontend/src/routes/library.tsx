@@ -58,8 +58,12 @@ function LibraryPage() {
             </Link>
           </div>
           <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">Workspace</Link>
-            <Link to="/history" className="hover:text-foreground">History</Link>
+            <Link to="/" className="hover:text-foreground">
+              Workspace
+            </Link>
+            <Link to="/history" className="hover:text-foreground">
+              History
+            </Link>
           </nav>
         </div>
       </header>
@@ -102,9 +106,7 @@ function LibraryPage() {
                       </p>
                       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                         {doc.file_type || "text"} ·{" "}
-                        {doc.created_at
-                          ? format(new Date(doc.created_at), "MMM d, yyyy")
-                          : "—"}
+                        {doc.created_at ? format(new Date(doc.created_at), "MMM d, yyyy") : "—"}
                       </p>
                     </div>
                   </div>
@@ -116,9 +118,11 @@ function LibraryPage() {
                   </button>
                 </div>
                 <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-                  {doc.extracted_text
-                    ? `${doc.extracted_text.length.toLocaleString()} chars extracted`
-                    : "Processing…"}
+                  {doc.extracted_text_length !== null
+                    ? `${doc.extracted_text_length.toLocaleString()} chars extracted`
+                    : doc.status === "completed"
+                      ? "0 chars extracted"
+                      : "Processing…"}
                 </p>
               </div>
             ))}
