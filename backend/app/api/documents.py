@@ -106,8 +106,12 @@ async def upload_document(
 
     logger.info("document_uploaded", doc_id=doc.id, filename=filename, status=doc.status.value)
 
+    # Add extracted_text_length for consistency in response
+    doc_response = DocumentResponse.model_validate(doc)
+    doc_response.extracted_text_length = len(doc.extracted_text) if doc.extracted_text else 0
+
     return DocumentUploadResponse(
-        document=DocumentResponse.model_validate(doc),
+        document=doc_response,
         message=f"File '{filename}' uploaded. Status: {doc.status.value}.",
     )
 
@@ -165,19 +169,44 @@ async def list_documents(
     )
     total = count_result.scalar() or 0
 
-    # Fetch page
+    # Fetch page - Optimizing to avoid loading massive text blobs for the list view.
+    # We explicitly select columns and calculate text length on the DB side.
     offset = (page - 1) * page_size
     result = await db.execute(
-        select(Document)
+        select(
+            Document.id,
+            Document.user_id,
+            Document.filename,
+            Document.file_type,
+            Document.status,
+            Document.error_message,
+            Document.created_at,
+            func.length(Document.extracted_text).label("extracted_text_length"),
+        )
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    documents = result.scalars().all()
+    documents = result.all()
 
+    # Note: extracted_text is explicitly None here to keep the payload small.
+    # DocumentResponse.model_validate handles the mapping of extracted_text_length.
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=[
+            DocumentResponse(
+                id=d.id,
+                user_id=d.user_id,
+                filename=d.filename,
+                file_type=d.file_type,
+                extracted_text=None,
+                extracted_text_length=d.extracted_text_length,
+                status=d.status,
+                error_message=d.error_message,
+                created_at=d.created_at,
+            )
+            for d in documents
+        ],
         total=total,
         page=page,
         page_size=page_size,
@@ -207,7 +236,11 @@ async def get_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    return DocumentResponse.model_validate(doc)
+    # Add extracted_text_length for consistency
+    doc_response = DocumentResponse.model_validate(doc)
+    doc_response.extracted_text_length = len(doc.extracted_text) if doc.extracted_text else 0
+
+    return doc_response
 
 
 @router.delete(
