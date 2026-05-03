@@ -7,7 +7,7 @@ and text processing requests.
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.document import FileType, ProcessingStatus
 
@@ -50,11 +50,19 @@ class DocumentResponse(BaseModel):
     filename: str = Field(..., description="Original uploaded filename.")
     file_type: FileType = Field(..., description="Detected file type.")
     extracted_text: str | None = Field(None, description="Extracted text content (if processed).")
+    extracted_text_length: int | None = Field(None, description="Length of extracted text.")
     status: ProcessingStatus = Field(..., description="Current processing status.")
     error_message: str | None = Field(None, description="Error details if processing failed.")
     created_at: datetime = Field(..., description="Upload timestamp.")
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="after")
+    def calculate_text_length(self) -> "DocumentResponse":
+        """Automatically calculate text length if text is present but length is not."""
+        if self.extracted_text_length is None and self.extracted_text is not None:
+            self.extracted_text_length = len(self.extracted_text)
+        return self
 
 
 class DocumentListResponse(BaseModel):
