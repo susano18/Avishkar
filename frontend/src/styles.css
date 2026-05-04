@@ -67,8 +67,8 @@
 :root {
   --radius: 0.625rem;
   /* Paper & Ink editorial palette */
-  --background: oklch(0.972 0.012 90);   /* warm paper */
-  --foreground: oklch(0.18 0.01 60);      /* ink */
+  --background: oklch(0.972 0.012 90); /* warm paper */
+  --foreground: oklch(0.18 0.01 60); /* ink */
   --card: oklch(0.985 0.008 90);
   --card-foreground: oklch(0.18 0.01 60);
   --popover: oklch(0.985 0.008 90);
@@ -79,7 +79,7 @@
   --secondary-foreground: oklch(0.18 0.01 60);
   --muted: oklch(0.93 0.018 85);
   --muted-foreground: oklch(0.45 0.015 70);
-  --accent: oklch(0.62 0.18 35);          /* burnt sienna */
+  --accent: oklch(0.62 0.18 35); /* burnt sienna */
   --accent-foreground: oklch(0.985 0.008 90);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.985 0.008 90);
@@ -168,8 +168,12 @@
 }
 
 @keyframes progress {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
 }
 
 .markdown-content ul {
@@ -182,14 +186,23 @@
   margin-left: 1.5rem;
   margin-bottom: 0.5rem;
 }
-.markdown-content h1 { font-size: 1.75rem; margin-bottom: 0.75rem; }
-.markdown-content h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-.markdown-content h3 { 
-  font-size: 1.25rem; 
+.markdown-content h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+.markdown-content h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.markdown-content h3 {
+  font-size: 1.25rem;
   border-left: 4px solid var(--accent);
   padding-left: 0.75rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
   margin-bottom: 0.5rem;
 }
-.markdown-content p { margin-bottom: 0.5rem; line-height: 1.6; }
+.markdown-content p {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
