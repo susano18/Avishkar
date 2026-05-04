@@ -30,10 +30,7 @@ export function clearToken() {
 /**
  * Fetch wrapper that auto-attaches the Authorization header.
  */
-export async function fetchWithAuth(
-  path: string,
-  options: RequestInit = {}
-): Promise<Response> {
+export async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getToken();
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
