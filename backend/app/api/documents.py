@@ -167,14 +167,25 @@ async def list_documents(
 
     # Fetch page
     offset = (page - 1) * page_size
+    # Optimization: Calculate text length on DB side and exclude extracted_text
+    # to significantly reduce payload size for the list view (Bolt ⚡).
     result = await db.execute(
-        select(Document)
+        select(
+            Document.id,
+            Document.user_id,
+            Document.filename,
+            Document.file_type,
+            Document.status,
+            Document.error_message,
+            Document.created_at,
+            func.length(Document.extracted_text).label("extracted_text_length"),
+        )
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    documents = result.scalars().all()
+    documents = result.mappings().all()
 
     return DocumentListResponse(
         documents=[DocumentResponse.model_validate(d) for d in documents],
