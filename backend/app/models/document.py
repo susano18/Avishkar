@@ -88,5 +88,10 @@ class Document(Base):
     # Relationships
     owner = relationship("User", back_populates="documents")
 
+    @property
+    def extracted_text_length(self) -> Optional[int]:
+        """Returns the length of the extracted text if present."""
+        return len(self.extracted_text) if self.extracted_text is not None else None
+
     def __repr__(self) -> str:
         return f"<Document(id={self.id}, filename={self.filename}, status={self.status.value})>"
