@@ -25,7 +25,9 @@ async function callLLM(messages: Array<{ role: string; content: string }>) {
       });
       if (res.status === 429) throw new Error("Rate limited. Try again shortly.");
       if (res.status === 402)
-        throw new Error("Lovable AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+        throw new Error(
+          "Lovable AI credits exhausted. Add credits in Settings → Workspace → Usage.",
+        );
       if (!res.ok) throw new Error(`LLM gateway error ${res.status}`);
       const data = await res.json();
       const text: string = data?.choices?.[0]?.message?.content ?? "";
