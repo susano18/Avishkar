@@ -48,7 +48,8 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
           {(topics || filtered) && (
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              aria-label="Download report as Markdown"
+              className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
             >
               <Download size={14} />
               Download .md
