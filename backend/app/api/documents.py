@@ -123,8 +123,10 @@ async def process_text(
     current_user: User = Depends(get_current_user),
 ) -> TextProcessResponse:
     """Send text to the LLM and return the response."""
-    system = request.system_prompt or "You are a helpful academic assistant."
-    model = request.model or settings.DEFAULT_MODEL
+    # Use a fixed system prompt and default model to prevent prompt injection
+    # and resource abuse (PRD security enhancement).
+    system = "You are a helpful academic assistant."
+    model = settings.DEFAULT_MODEL
 
     # Run blocking LLM call in thread pool
     loop = asyncio.get_event_loop()
