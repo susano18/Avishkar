@@ -165,19 +165,44 @@ async def list_documents(
     )
     total = count_result.scalar() or 0
 
-    # Fetch page
+    # Fetch page - optimized to exclude large text content
     offset = (page - 1) * page_size
+    # We explicitly select all columns EXCEPT extracted_text,
+    # and use func.length to get the character count.
+    # This significantly reduces payload size for document listings.
     result = await db.execute(
-        select(Document)
+        select(
+            Document.id,
+            Document.user_id,
+            Document.filename,
+            Document.file_type,
+            Document.status,
+            Document.error_message,
+            Document.created_at,
+            func.length(Document.extracted_text).label("extracted_text_length"),
+        )
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    documents = result.scalars().all()
+    documents = result.all()
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=[
+            DocumentResponse(
+                id=d.id,
+                user_id=d.user_id,
+                filename=d.filename,
+                file_type=d.file_type,
+                status=d.status,
+                error_message=d.error_message,
+                created_at=d.created_at,
+                extracted_text_length=d.extracted_text_length,
+                extracted_text=None,
+            )
+            for d in documents
+        ],
         total=total,
         page=page,
         page_size=page_size,
