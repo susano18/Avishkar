@@ -29,7 +29,7 @@ from app.schemas.document import (
 from app.services.auth_service import get_current_user
 from app.services.input_handler import process_uploaded_file
 from app.services.llm_client import send_prompt
-from app.utils.exceptions import UnsupportedFileTypeError
+from app.utils.exceptions import FileTooLargeError, UnsupportedFileTypeError
 from app.utils.helpers import (
     detect_file_type,
     ensure_upload_dir,
@@ -57,6 +57,10 @@ async def upload_document(
 ) -> DocumentUploadResponse:
     """Upload a file, extract text, and create a document record."""
     filename = file.filename or "unknown"
+
+    # Validate file size (PRD §6.4 - Security)
+    if file.size and file.size > settings.max_upload_size_bytes:
+        raise FileTooLargeError(filename, settings.MAX_UPLOAD_SIZE_MB)
 
     # Validate file type
     if not is_supported_file(filename):
@@ -123,8 +127,9 @@ async def process_text(
     current_user: User = Depends(get_current_user),
 ) -> TextProcessResponse:
     """Send text to the LLM and return the response."""
-    system = request.system_prompt or "You are a helpful academic assistant."
-    model = request.model or settings.DEFAULT_MODEL
+    # Security: Hardcoded system prompt and default model to prevent injection/abuse
+    system = "You are a helpful academic assistant."
+    model = settings.DEFAULT_MODEL
 
     # Run blocking LLM call in thread pool
     loop = asyncio.get_event_loop()
