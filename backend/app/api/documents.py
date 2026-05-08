@@ -165,19 +165,29 @@ async def list_documents(
     )
     total = count_result.scalar() or 0
 
-    # Fetch page
+    # Fetch page (excluding large extracted_text field for performance)
     offset = (page - 1) * page_size
     result = await db.execute(
-        select(Document)
+        select(
+            Document.id,
+            Document.user_id,
+            Document.filename,
+            Document.file_type,
+            Document.status,
+            Document.error_message,
+            Document.created_at,
+            func.length(Document.extracted_text).label("extracted_text_length"),
+        )
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    documents = result.scalars().all()
+    # Using model_validate with dictionaries for optimized result rows
+    documents = [DocumentResponse.model_validate(row, from_attributes=True) for row in result.all()]
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=documents,
         total=total,
         page=page,
         page_size=page_size,
