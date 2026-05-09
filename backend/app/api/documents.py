@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import defer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -167,17 +168,41 @@ async def list_documents(
 
     # Fetch page
     offset = (page - 1) * page_size
+    # Optimization: Defer loading 'extracted_text' to reduce payload size.
+    # We use func.length to get the character count without fetching the full text.
     result = await db.execute(
-        select(Document)
+        select(
+            Document,
+            func.length(Document.extracted_text).label("text_len")
+        )
         .where(Document.user_id == current_user.id)
+        .options(defer(Document.extracted_text))
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    documents = result.scalars().all()
+    rows = result.all()
+
+    documents_data = []
+    for doc, text_len in rows:
+        # Optimization: We use model_validate with a dict to avoid Pydantic
+        # trying to access the deferred 'extracted_text' attribute on the ORM model,
+        # which would trigger an unwanted (and failing) lazy load.
+        doc_dict = {
+            "id": doc.id,
+            "user_id": doc.user_id,
+            "filename": doc.filename,
+            "file_type": doc.file_type,
+            "status": doc.status,
+            "error_message": doc.error_message,
+            "created_at": doc.created_at,
+            "extracted_text": None,
+            "extracted_text_length": text_len,
+        }
+        documents_data.append(DocumentResponse.model_validate(doc_dict))
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=documents_data,
         total=total,
         page=page,
         page_size=page_size,
