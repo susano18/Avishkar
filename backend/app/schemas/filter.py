@@ -44,12 +44,6 @@ class FilterRunRequest(BaseModel):
         description="Raw notes text (alternative to notes_doc_id).",
     )
 
-    # Optional configuration
-    model: str | None = Field(
-        default=None,
-        description="Optional LLM model override for this filter operation.",
-        examples=["openai/gpt-4o"],
-    )
 
 
 # ---------------------------------------------------------------------------
