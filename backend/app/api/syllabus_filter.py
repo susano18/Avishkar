@@ -103,7 +103,8 @@ async def run_syllabus_filter(
 
     # Run the two-stage filter pipeline in a thread pool
     # (run_filter → send_prompt are synchronous/blocking calls)
-    model = request.model
+    # Strictly use the default model to prevent parameter abuse
+    model = settings.DEFAULT_MODEL
     loop = asyncio.get_event_loop()
     filter_output = await loop.run_in_executor(
         None,

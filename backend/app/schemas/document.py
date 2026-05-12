@@ -26,16 +26,6 @@ class TextProcessRequest(BaseModel):
         description="The plain text content to process via the LLM.",
         examples=["Explain the concept of polymorphism in object-oriented programming."],
     )
-    model: str | None = Field(
-        default=None,
-        description="Optional LLM model override. Uses the default model if not specified.",
-        examples=["openai/gpt-4o"],
-    )
-    system_prompt: str | None = Field(
-        default=None,
-        description="Optional system prompt to guide the LLM's behavior.",
-        examples=["You are a helpful academic tutor."],
-    )
 
 
 # ---------------------------------------------------------------------------
