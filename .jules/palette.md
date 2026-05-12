@@ -1,0 +1,3 @@
+## 2025-05-22 - Standardizing Destructive Actions & Keyboard Visibility
+**Learning:** In a "clean" UI where interactive elements are often hidden until hover (e.g., `opacity-0 group-hover:opacity-100`), they are completely invisible to keyboard users unless `focus-visible:opacity-100` and standard focus rings are applied. Additionally, inconsistent safety patterns for destructive actions (like having a confirmation in one route but not another) creates a jarring and potentially dangerous user experience.
+**Action:** Always verify that conditionally visible elements are made visible on focus. Standardize destructive action confirmations across all routes to maintain a consistent safety contract with the user.
