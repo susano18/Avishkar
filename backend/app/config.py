@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     # --- OpenRouter API ---
     OPENROUTER_API_KEY: str = ""
     DEFAULT_MODEL: str = "openrouter/free"
+    DEFAULT_SYSTEM_PROMPT: str = "You are a helpful academic assistant."
     # --- Database ---
     DATABASE_URL: str = "sqlite:///codelens.db"
 
