@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import undefer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -167,17 +168,45 @@ async def list_documents(
 
     # Fetch page
     offset = (page - 1) * page_size
+    # Optimization: explicitly select metadata fields and extracted_text_length
+    # while excluding the large extracted_text field to reduce payload and memory usage.
     result = await db.execute(
-        select(Document)
+        select(
+            Document.id,
+            Document.user_id,
+            Document.filename,
+            Document.file_type,
+            Document.status,
+            Document.error_message,
+            Document.created_at,
+            Document.extracted_text_length,
+        )
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    documents = result.scalars().all()
+    # documents will be a list of Row objects, but DocumentResponse.model_validate
+    # can handle them if converted to dict or if using from_attributes=True on Row objects.
+    # We'll map them to DocumentResponse manually or ensure they look like what's expected.
+    documents = result.all()
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=[
+            DocumentResponse.model_validate(
+                {
+                    "id": d.id,
+                    "user_id": d.user_id,
+                    "filename": d.filename,
+                    "file_type": d.file_type,
+                    "status": d.status,
+                    "error_message": d.error_message,
+                    "created_at": d.created_at,
+                    "extracted_text_length": d.extracted_text_length,
+                }
+            )
+            for d in documents
+        ],
         total=total,
         page=page,
         page_size=page_size,
@@ -196,8 +225,11 @@ async def get_document(
     current_user: User = Depends(get_current_user),
 ) -> DocumentResponse:
     """Get a specific document by ID (must belong to current user)."""
+    # Use undefer to explicitly load the heavy fields for a single document fetch.
     result = await db.execute(
-        select(Document).where(
+        select(Document)
+        .options(undefer(Document.extracted_text), undefer(Document.extracted_text_length))
+        .where(
             Document.id == document_id,
             Document.user_id == current_user.id,
         )

@@ -50,6 +50,7 @@ class DocumentResponse(BaseModel):
     filename: str = Field(..., description="Original uploaded filename.")
     file_type: FileType = Field(..., description="Detected file type.")
     extracted_text: str | None = Field(None, description="Extracted text content (if processed).")
+    extracted_text_length: int | None = Field(None, description="Length of the extracted text content.")
     status: ProcessingStatus = Field(..., description="Current processing status.")
     error_message: str | None = Field(None, description="Error details if processing failed.")
     created_at: datetime = Field(..., description="Upload timestamp.")
