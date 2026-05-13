@@ -12,6 +12,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import undefer
 
 import structlog
 
@@ -169,6 +170,7 @@ async def list_documents(
     offset = (page - 1) * page_size
     result = await db.execute(
         select(Document)
+        .options(undefer(Document.extracted_text_length))
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
@@ -176,8 +178,25 @@ async def list_documents(
     )
     documents = result.scalars().all()
 
+    # Create a list of dictionaries to avoid lazy-loading 'extracted_text'
+    # when Pydantic iterates over the Document objects.
+    document_data = []
+    for d in documents:
+        data = {
+            "id": d.id,
+            "user_id": d.user_id,
+            "filename": d.filename,
+            "file_type": d.file_type,
+            "status": d.status,
+            "error_message": d.error_message,
+            "created_at": d.created_at,
+            "extracted_text_length": d.extracted_text_length,
+            "extracted_text": None,  # Explicitly None to avoid lazy-load
+        }
+        document_data.append(data)
+
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=document_data,
         total=total,
         page=page,
         page_size=page_size,
@@ -188,7 +207,6 @@ async def list_documents(
     "/{document_id}",
     response_model=DocumentResponse,
     summary="Get document details",
-    description="Retrieve details and extracted text of a specific document.",
 )
 async def get_document(
     document_id: str,
@@ -196,8 +214,14 @@ async def get_document(
     current_user: User = Depends(get_current_user),
 ) -> DocumentResponse:
     """Get a specific document by ID (must belong to current user)."""
+    options = [
+        undefer(Document.extracted_text),
+        undefer(Document.extracted_text_length),
+    ]
     result = await db.execute(
-        select(Document).where(
+        select(Document)
+        .options(*options)
+        .where(
             Document.id == document_id,
             Document.user_id == current_user.id,
         )
