@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import undefer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -169,6 +170,7 @@ async def list_documents(
     offset = (page - 1) * page_size
     result = await db.execute(
         select(Document)
+        .options(undefer(Document.extracted_text_length))
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
@@ -176,8 +178,27 @@ async def list_documents(
     )
     documents = result.scalars().all()
 
+    # To avoid 'MissingGreenlet' errors with deferred fields when Pydantic
+    # validates the ORM objects, we construct the response data manually
+    # using only the loaded fields.
+    docs_data = []
+    for d in documents:
+        docs_data.append(
+            DocumentResponse(
+                id=d.id,
+                user_id=d.user_id,
+                filename=d.filename,
+                file_type=d.file_type,
+                extracted_text=None,
+                extracted_text_length=d.extracted_text_length,
+                status=d.status,
+                error_message=d.error_message,
+                created_at=d.created_at,
+            )
+        )
+
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=docs_data,
         total=total,
         page=page,
         page_size=page_size,
@@ -197,7 +218,12 @@ async def get_document(
 ) -> DocumentResponse:
     """Get a specific document by ID (must belong to current user)."""
     result = await db.execute(
-        select(Document).where(
+        select(Document)
+        .options(
+            undefer(Document.extracted_text),
+            undefer(Document.extracted_text_length)
+        )
+        .where(
             Document.id == document_id,
             Document.user_id == current_user.id,
         )
@@ -207,6 +233,8 @@ async def get_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
+    # We return the ORM object; Pydantic will validate it using 'from_attributes'
+    # since we ensured all required fields in the schema are loaded.
     return DocumentResponse.model_validate(doc)
 
 
