@@ -142,6 +142,23 @@ async def codelens_error_handler(request: Request, exc: CodeLensBaseError):
     )
 
 
+from pydantic import ValidationError
+
+@app.exception_handler(ValidationError)
+async def pydantic_validation_error_handler(request: Request, exc: ValidationError):
+    """Handle Pydantic validation errors."""
+    structlog.get_logger("codelens.error").error("pydantic_validation_error", errors=exc.errors())
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": "ValidationError",
+            "message": "Input validation failed",
+            "details": exc.errors(),
+            "status_code": 422,
+        },
+    )
+
+
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
     """Handle unexpected ValueErrors as 400 Bad Request."""
