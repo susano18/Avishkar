@@ -9,6 +9,7 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import undefer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -65,7 +66,9 @@ async def run_syllabus_filter(
     # Resolve document IDs to text if provided
     if request.syllabus_doc_id and not syllabus_text:
         result = await db.execute(
-            select(Document).where(
+            select(Document)
+            .options(undefer(Document.extracted_text))
+            .where(
                 Document.id == request.syllabus_doc_id,
                 Document.user_id == current_user.id,
             )
@@ -79,7 +82,9 @@ async def run_syllabus_filter(
 
     if request.notes_doc_id and not notes_text:
         result = await db.execute(
-            select(Document).where(
+            select(Document)
+            .options(undefer(Document.extracted_text))
+            .where(
                 Document.id == request.notes_doc_id,
                 Document.user_id == current_user.id,
             )
