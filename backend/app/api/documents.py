@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import undefer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -22,6 +23,7 @@ from app.models.user import User
 from app.schemas.document import (
     DocumentListResponse,
     DocumentResponse,
+    DocumentShortResponse,
     DocumentUploadResponse,
     TextProcessRequest,
     TextProcessResponse,
@@ -169,6 +171,7 @@ async def list_documents(
     offset = (page - 1) * page_size
     result = await db.execute(
         select(Document)
+        .options(undefer(Document.extracted_text_length))
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
@@ -176,8 +179,23 @@ async def list_documents(
     )
     documents = result.scalars().all()
 
+    # Pre-validate into a list of dicts to avoid DetachedInstanceError
+    # when Pydantic tries to access deferred columns during validation
+    document_data = []
+    for d in documents:
+        document_data.append({
+            "id": d.id,
+            "user_id": d.user_id,
+            "filename": d.filename,
+            "file_type": d.file_type,
+            "extracted_text_length": d.extracted_text_length,
+            "status": d.status,
+            "error_message": d.error_message,
+            "created_at": d.created_at,
+        })
+
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=document_data,
         total=total,
         page=page,
         page_size=page_size,
@@ -197,7 +215,9 @@ async def get_document(
 ) -> DocumentResponse:
     """Get a specific document by ID (must belong to current user)."""
     result = await db.execute(
-        select(Document).where(
+        select(Document)
+        .options(undefer(Document.extracted_text))
+        .where(
             Document.id == document_id,
             Document.user_id == current_user.id,
         )
