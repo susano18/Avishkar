@@ -13,6 +13,7 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from app.api.router import api_router
 from app.config import get_settings
@@ -128,6 +129,20 @@ app.add_middleware(LoggingMiddleware)
 # ---------------------------------------------------------------------------
 # Global exception handlers
 # ---------------------------------------------------------------------------
+
+@app.exception_handler(ValidationError)
+async def pydantic_validation_error_handler(request: Request, exc: ValidationError):
+    """Handle Pydantic validation errors."""
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "ValidationError",
+            "message": "Data validation failed.",
+            "details": exc.errors(),
+            "status_code": 400,
+        },
+    )
+
 
 @app.exception_handler(CodeLensBaseError)
 async def codelens_error_handler(request: Request, exc: CodeLensBaseError):
