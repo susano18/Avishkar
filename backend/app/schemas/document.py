@@ -24,11 +24,16 @@ class TextProcessRequest(BaseModel):
         min_length=1,
         max_length=100_000,
         description="The plain text content to process via the LLM.",
-        examples=["Explain the concept of polymorphism in object-oriented programming."],
+        examples=[
+            "Explain polymorphism in object-oriented programming."
+        ],
     )
     model: str | None = Field(
         default=None,
-        description="Optional LLM model override. Uses the default model if not specified.",
+        description=(
+            "Optional LLM model override. "
+            "Uses the default model if not specified."
+        ),
         examples=["openai/gpt-4o"],
     )
     system_prompt: str | None = Field(
@@ -49,18 +54,47 @@ class DocumentResponse(BaseModel):
     user_id: str = Field(..., description="Owner's user ID.")
     filename: str = Field(..., description="Original uploaded filename.")
     file_type: FileType = Field(..., description="Detected file type.")
-    extracted_text: str | None = Field(None, description="Extracted text content (if processed).")
-    status: ProcessingStatus = Field(..., description="Current processing status.")
-    error_message: str | None = Field(None, description="Error details if processing failed.")
+    extracted_text: str | None = Field(
+        None, description="Extracted text content (if processed)."
+    )
+    status: ProcessingStatus = Field(
+        ..., description="Current processing status."
+    )
+    error_message: str | None = Field(
+        None, description="Error details if processing failed."
+    )
+    created_at: datetime = Field(
+        ..., description="Upload timestamp."
+    )
+
+    model_config = {"from_attributes": True}
+
+
+class DocumentShortResponse(BaseModel):
+    """Document record without the heavy extracted text content."""
+
+    id: str = Field(..., description="Unique document identifier (UUID).")
+    user_id: str = Field(..., description="Owner's user ID.")
+    filename: str = Field(..., description="Original uploaded filename.")
+    file_type: FileType = Field(..., description="Detected file type.")
+    extracted_text_length: int | None = Field(
+        None, description="Length of extracted text (if processed)."
+    )
+    status: ProcessingStatus = Field(
+        ..., description="Current processing status."
+    )
+    error_message: str | None = Field(
+        None, description="Error details if processing failed."
+    )
     created_at: datetime = Field(..., description="Upload timestamp.")
 
     model_config = {"from_attributes": True}
 
 
 class DocumentListResponse(BaseModel):
-    """Schema for a paginated list of documents."""
+    """Schema for a paginated list of documents (uses short format)."""
 
-    documents: list[DocumentResponse] = Field(
+    documents: list[DocumentShortResponse] = Field(
         ..., description="List of document records."
     )
     total: int = Field(..., description="Total number of documents.")
@@ -73,13 +107,17 @@ class TextProcessResponse(BaseModel):
 
     input_text: str = Field(..., description="The original input text.")
     response: str = Field(..., description="The LLM-generated response.")
-    model_used: str = Field(..., description="The model that generated the response.")
+    model_used: str = Field(
+        ..., description="The model that generated the response."
+    )
 
 
 class DocumentUploadResponse(BaseModel):
     """Schema for the response after uploading and processing a file."""
 
-    document: DocumentResponse = Field(..., description="The created document record.")
+    document: DocumentResponse = Field(
+        ..., description="The created document record."
+    )
     message: str = Field(
         default="File uploaded and processing started.",
         description="Status message.",

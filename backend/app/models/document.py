@@ -10,8 +10,8 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship, column_property
 from typing import Optional
 
 from app.database import Base
@@ -59,7 +59,10 @@ class Document(Base):
         default=lambda: str(uuid.uuid4()),
     )
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
     )
     filename: Mapped[str] = mapped_column(
         String(255), nullable=False
@@ -74,7 +77,9 @@ class Document(Base):
         Text, nullable=True
     )
     status: Mapped[ProcessingStatus] = mapped_column(
-        Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
+        Enum(ProcessingStatus),
+        default=ProcessingStatus.PENDING,
+        nullable=False
     )
     error_message: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
@@ -85,8 +90,17 @@ class Document(Base):
         nullable=False,
     )
 
+    # Computed property for text length (PRD §4.1 optimization)
+    extracted_text_length = column_property(
+        func.length(extracted_text),
+        deferred=True
+    )
+
     # Relationships
     owner = relationship("User", back_populates="documents")
 
     def __repr__(self) -> str:
-        return f"<Document(id={self.id}, filename={self.filename}, status={self.status.value})>"
+        return (
+            f"<Document(id={self.id}, filename={self.filename}, "
+            f"status={self.status.value})>"
+        )
