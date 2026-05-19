@@ -9,8 +9,17 @@ import asyncio
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    Query,
+    status,
+)
 from sqlalchemy import func, select
+from sqlalchemy.orm import defer, undefer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -22,6 +31,7 @@ from app.models.user import User
 from app.schemas.document import (
     DocumentListResponse,
     DocumentResponse,
+    DocumentShortResponse,
     DocumentUploadResponse,
     TextProcessRequest,
     TextProcessResponse,
@@ -48,7 +58,10 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Upload and process a file",
-    description="Upload a PDF or audio file. The file is saved, text is extracted, and a document record is created.",
+    description=(
+        "Upload a PDF or audio file. The file is saved, text is extracted, "
+        "and a document record is created."
+    ),
 )
 async def upload_document(
     file: UploadFile = File(..., description="PDF or audio file to upload"),
@@ -89,7 +102,10 @@ async def upload_document(
         doc.status = ProcessingStatus.FAILED
         doc.error_message = f"Failed to save file: {e}"
         await db.flush()
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save file: {e}"
+        )
 
     # Extract text (runs blocking IO in thread pool via process_uploaded_file)
     try:
@@ -104,7 +120,12 @@ async def upload_document(
     await db.flush()
     await db.refresh(doc)
 
-    logger.info("document_uploaded", doc_id=doc.id, filename=filename, status=doc.status.value)
+    logger.info(
+        "document_uploaded",
+        doc_id=doc.id,
+        filename=filename,
+        status=doc.status.value
+    )
 
     return DocumentUploadResponse(
         document=DocumentResponse.model_validate(doc),
@@ -116,7 +137,9 @@ async def upload_document(
     "/process-text",
     response_model=TextProcessResponse,
     summary="Process text with the LLM",
-    description="Submit plain text for processing by the LLM and receive the response.",
+    description=(
+        "Submit plain text for processing by the LLM and receive the response."
+    ),
 )
 async def process_text(
     request: TextProcessRequest,
@@ -150,7 +173,9 @@ async def process_text(
     "",
     response_model=DocumentListResponse,
     summary="List user's documents",
-    description="Retrieve a paginated list of the current user's uploaded documents.",
+    description=(
+        "Retrieve a paginated list of the current user's uploaded documents."
+    ),
 )
 async def list_documents(
     page: int = Query(1, ge=1, description="Page number"),
@@ -161,7 +186,9 @@ async def list_documents(
     """List all documents belonging to the current user."""
     # Count total
     count_result = await db.execute(
-        select(func.count(Document.id)).where(Document.user_id == current_user.id)
+        select(func.count(Document.id)).where(
+            Document.user_id == current_user.id
+        )
     )
     total = count_result.scalar() or 0
 
@@ -170,6 +197,10 @@ async def list_documents(
     result = await db.execute(
         select(Document)
         .where(Document.user_id == current_user.id)
+        .options(
+            defer(Document.extracted_text),
+            undefer(Document.extracted_text_length)
+        )
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
@@ -177,7 +208,9 @@ async def list_documents(
     documents = result.scalars().all()
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=[
+            DocumentShortResponse.model_validate(d) for d in documents
+        ],
         total=total,
         page=page,
         page_size=page_size,
@@ -240,4 +273,6 @@ async def delete_document(
             file_path.unlink()
 
     await db.delete(doc)
-    logger.info("document_deleted", doc_id=document_id, user_id=current_user.id)
+    logger.info(
+        "document_deleted", doc_id=document_id, user_id=current_user.id
+    )
