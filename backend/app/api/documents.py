@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import undefer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -22,6 +23,7 @@ from app.models.user import User
 from app.schemas.document import (
     DocumentListResponse,
     DocumentResponse,
+    DocumentShortResponse,
     DocumentUploadResponse,
     TextProcessRequest,
     TextProcessResponse,
@@ -102,7 +104,7 @@ async def upload_document(
         logger.error("document_processing_failed", doc_id=doc.id, error=str(e))
 
     await db.flush()
-    await db.refresh(doc)
+    await db.refresh(doc, ["extracted_text"])
 
     logger.info("document_uploaded", doc_id=doc.id, filename=filename, status=doc.status.value)
 
@@ -169,6 +171,7 @@ async def list_documents(
     offset = (page - 1) * page_size
     result = await db.execute(
         select(Document)
+        .options(undefer(Document.extracted_text_length))
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
@@ -177,7 +180,7 @@ async def list_documents(
     documents = result.scalars().all()
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=[DocumentShortResponse.model_validate(d) for d in documents],
         total=total,
         page=page,
         page_size=page_size,
@@ -197,7 +200,9 @@ async def get_document(
 ) -> DocumentResponse:
     """Get a specific document by ID (must belong to current user)."""
     result = await db.execute(
-        select(Document).where(
+        select(Document)
+        .options(undefer(Document.extracted_text))
+        .where(
             Document.id == document_id,
             Document.user_id == current_user.id,
         )
