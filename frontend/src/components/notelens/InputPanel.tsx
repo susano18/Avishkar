@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { extractPdfText } from "@/lib/pdf";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
@@ -12,6 +12,7 @@ type Props = {
 };
 
 export function InputPanel({ label, hint, value, onChange, accent }: Props) {
+  const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -85,7 +86,9 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
           >
             {accent ? "02" : "01"}
           </span>
-          <h2 className="font-display text-2xl">{label}</h2>
+          <h2 className="font-display text-2xl">
+            <label htmlFor={inputId}>{label}</label>
+          </h2>
         </div>
         <button
           onClick={() => fileRef.current?.click()}
@@ -97,6 +100,7 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
         <input
           ref={fileRef}
           type="file"
+          aria-label="Upload file"
           accept=".pdf,.txt,.md,.mp3,.wav,.m4a,.ogg,application/pdf,text/plain,audio/*"
           className="hidden"
           onChange={(e) => {
@@ -127,11 +131,12 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
         </div>
       ) : (
         <textarea
+          id={inputId}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={hint}
           spellCheck={false}
-          className="min-h-[260px] flex-1 resize-none bg-transparent px-5 py-4 font-mono text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+          className="min-h-[260px] flex-1 resize-none bg-transparent px-5 py-4 font-mono text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 outline-none focus-visible:ring-1 focus-visible:ring-accent"
         />
       )}
 
