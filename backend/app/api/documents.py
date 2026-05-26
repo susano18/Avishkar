@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import defer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -22,6 +23,7 @@ from app.models.user import User
 from app.schemas.document import (
     DocumentListResponse,
     DocumentResponse,
+    DocumentShortResponse,
     DocumentUploadResponse,
     TextProcessRequest,
     TextProcessResponse,
@@ -167,17 +169,19 @@ async def list_documents(
 
     # Fetch page
     offset = (page - 1) * page_size
+    # Fetch page — Optimization: defer loading large extracted_text field (PRD §4.3)
     result = await db.execute(
         select(Document)
         .where(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
+        .options(defer(Document.extracted_text))
     )
     documents = result.scalars().all()
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=[DocumentShortResponse.model_validate(d) for d in documents],
         total=total,
         page=page,
         page_size=page_size,
