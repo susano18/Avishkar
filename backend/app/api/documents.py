@@ -29,7 +29,7 @@ from app.schemas.document import (
 from app.services.auth_service import get_current_user
 from app.services.input_handler import process_uploaded_file
 from app.services.llm_client import send_prompt
-from app.utils.exceptions import UnsupportedFileTypeError
+from app.utils.exceptions import FileTooLargeError, UnsupportedFileTypeError
 from app.utils.helpers import (
     detect_file_type,
     ensure_upload_dir,
@@ -57,6 +57,11 @@ async def upload_document(
 ) -> DocumentUploadResponse:
     """Upload a file, extract text, and create a document record."""
     filename = file.filename or "unknown"
+
+    # Validate file size (pre-extraction check for DoS prevention)
+    if file.size and file.size > settings.max_upload_size_bytes:
+        logger.warning("upload_file_too_large", filename=filename, size=file.size)
+        raise FileTooLargeError(filename, settings.MAX_UPLOAD_SIZE_MB)
 
     # Validate file type
     if not is_supported_file(filename):
@@ -87,9 +92,13 @@ async def upload_document(
         doc.file_path = str(file_path)
     except Exception as e:
         doc.status = ProcessingStatus.FAILED
-        doc.error_message = f"Failed to save file: {e}"
+        doc.error_message = "Failed to save file to storage."
         await db.flush()
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+        logger.error("file_save_failed", doc_id=doc.id, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while saving the file. Please try again."
+        )
 
     # Extract text (runs blocking IO in thread pool via process_uploaded_file)
     try:
@@ -98,7 +107,7 @@ async def upload_document(
         doc.status = ProcessingStatus.COMPLETED
     except Exception as e:
         doc.status = ProcessingStatus.FAILED
-        doc.error_message = str(e)
+        doc.error_message = "Failed to extract text from file."
         logger.error("document_processing_failed", doc_id=doc.id, error=str(e))
 
     await db.flush()
