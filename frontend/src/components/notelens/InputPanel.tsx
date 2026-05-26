@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useId } from "react";
 import { extractPdfText } from "@/lib/pdf";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
@@ -15,6 +15,7 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const id = useId();
 
   const isDoc = value.startsWith("DOC-");
 
@@ -73,7 +74,7 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
 
   return (
     <div
-      className="group relative flex h-full flex-col rounded-md border border-border bg-card"
+      className="group relative flex h-full flex-col rounded-md border border-border bg-card transition-shadow focus-within:ring-1 focus-within:ring-accent"
       style={{ boxShadow: "var(--shadow-paper)" }}
     >
       <div className="flex items-baseline justify-between border-b border-border px-5 py-3">
@@ -85,12 +86,15 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
           >
             {accent ? "02" : "01"}
           </span>
-          <h2 className="font-display text-2xl">{label}</h2>
+          <h2 className="font-display text-2xl">
+            <label htmlFor={id}>{label}</label>
+          </h2>
         </div>
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+          aria-label="Upload file"
+          className="rounded-sm font-mono text-[11px] uppercase tracking-widest text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
         >
           {busy ? "uploading…" : "upload file"}
         </button>
@@ -120,13 +124,15 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
               onChange("");
               setFileName(null);
             }}
-            className="mt-2 font-mono text-[10px] uppercase tracking-widest text-accent underline underline-offset-4 hover:text-foreground"
+            aria-label="Clear content"
+            className="mt-2 rounded-sm font-mono text-[10px] uppercase tracking-widest text-accent underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             clear
           </button>
         </div>
       ) : (
         <textarea
+          id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={hint}
