@@ -1,5 +1,7 @@
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Download } from "lucide-react";
+import { Download, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   topics: string;
@@ -9,22 +11,26 @@ type Props = {
 };
 
 export function OutputPanel({ topics, filtered, loading, error }: Props) {
+  const [copied, setCopied] = useState(false);
   const empty = !loading && !error && !topics && !filtered;
 
-  const handleDownload = () => {
-    // Sanitize function to remove any accidental LLM chatter or echo
-    const sanitize = (text: string) => {
-      return text
-        .replace(/^You are a precision academic parser\..*$/gm, "")
-        .replace(/^You are an inclusive academic filter.*$/gm, "")
-        .replace(/^===.*===$/gm, "")
-        .trim();
-    };
+  // Sanitize function to remove any accidental LLM chatter or echo
+  const sanitize = (text: string) => {
+    return text
+      .replace(/^You are a precision academic parser\..*$/gm, "")
+      .replace(/^You are an inclusive academic filter.*$/gm, "")
+      .replace(/^===.*===$/gm, "")
+      .trim();
+  };
 
+  const getFullContent = () => {
     const cleanTopics = sanitize(topics);
     const cleanFiltered = sanitize(filtered);
+    return `# CodeLens Relevancy Report\n\n## Identified Syllabus Topics\n${cleanTopics}\n\n---\n\n## Filtered Study Notes\n${cleanFiltered}`;
+  };
 
-    const content = `# CodeLens Relevancy Report\n\n## Identified Syllabus Topics\n${cleanTopics}\n\n---\n\n## Filtered Study Notes\n${cleanFiltered}`;
+  const handleDownload = () => {
+    const content = getFullContent();
     const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -34,6 +40,19 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  const handleCopy = async () => {
+    try {
+      const content = getFullContent();
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      toast.success("Report copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      toast.error("Failed to copy to clipboard");
+    }
+  };
+
   return (
     <section
       className="relative rounded-md border border-border bg-card"
@@ -41,18 +60,36 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
     >
       <header className="flex items-baseline justify-between border-b border-border px-6 py-4">
         <div className="flex items-baseline gap-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">03</span>
+          <span
+            aria-hidden="true"
+            className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent"
+          >
+            03
+          </span>
           <h2 className="font-display text-3xl">Filtered Output</h2>
         </div>
         <div className="flex items-center gap-4">
           {(topics || filtered) && (
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
-            >
-              <Download size={14} />
-              Download .md
-            </button>
+            <>
+              <button
+                onClick={handleCopy}
+                aria-label="Copy report to clipboard"
+                title="Copy to clipboard"
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={handleDownload}
+                aria-label="Download report as Markdown"
+                title="Download .md"
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              >
+                <Download size={14} />
+                Download .md
+              </button>
+            </>
           )}
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {loading ? "processing…" : filtered ? "complete" : "idle"}
@@ -105,7 +142,7 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
 
 function SkeletonLines({ n }: { n: number }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" role="status" aria-label="Loading content">
       {Array.from({ length: n }).map((_, i) => (
         <div
           key={i}
