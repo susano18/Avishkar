@@ -42,14 +42,13 @@ class TextProcessRequest(BaseModel):
 # Response Schemas
 # ---------------------------------------------------------------------------
 
-class DocumentResponse(BaseModel):
-    """Schema for a single document's details."""
+class DocumentBaseResponse(BaseModel):
+    """Common fields for document responses."""
 
     id: str = Field(..., description="Unique document identifier (UUID).")
     user_id: str = Field(..., description="Owner's user ID.")
     filename: str = Field(..., description="Original uploaded filename.")
     file_type: FileType = Field(..., description="Detected file type.")
-    extracted_text: str | None = Field(None, description="Extracted text content (if processed).")
     status: ProcessingStatus = Field(..., description="Current processing status.")
     error_message: str | None = Field(None, description="Error details if processing failed.")
     created_at: datetime = Field(..., description="Upload timestamp.")
@@ -57,11 +56,25 @@ class DocumentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class DocumentListResponse(BaseModel):
-    """Schema for a paginated list of documents."""
+class DocumentShortResponse(DocumentBaseResponse):
+    """Optimized schema for document listings (excludes full text)."""
 
-    documents: list[DocumentResponse] = Field(
-        ..., description="List of document records."
+    extracted_text_length: int = Field(
+        0, description="Length of the extracted text in characters."
+    )
+
+
+class DocumentResponse(DocumentBaseResponse):
+    """Schema for a single document's full details (includes text)."""
+
+    extracted_text: str | None = Field(None, description="Extracted text content (if processed).")
+
+
+class DocumentListResponse(BaseModel):
+    """Schema for a paginated list of documents (optimized)."""
+
+    documents: list[DocumentShortResponse] = Field(
+        ..., description="List of document records (without full text)."
     )
     total: int = Field(..., description="Total number of documents.")
     page: int = Field(..., description="Current page number (1-indexed).")
