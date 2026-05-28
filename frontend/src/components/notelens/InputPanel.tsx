@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useId } from "react";
 import { extractPdfText } from "@/lib/pdf";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
@@ -13,6 +13,7 @@ type Props = {
 
 export function InputPanel({ label, hint, value, onChange, accent }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
   const [busy, setBusy] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -85,7 +86,9 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
           >
             {accent ? "02" : "01"}
           </span>
-          <h2 className="font-display text-2xl">{label}</h2>
+          <h2 className="font-display text-2xl">
+            {isDoc ? label : <label htmlFor={inputId}>{label}</label>}
+          </h2>
         </div>
         <button
           onClick={() => fileRef.current?.click()}
@@ -127,6 +130,7 @@ export function InputPanel({ label, hint, value, onChange, accent }: Props) {
         </div>
       ) : (
         <textarea
+          id={inputId}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={hint}

@@ -105,7 +105,7 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
 
 function SkeletonLines({ n }: { n: number }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" role="status" aria-label="Loading content">
       {Array.from({ length: n }).map((_, i) => (
         <div
           key={i}

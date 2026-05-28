@@ -12,8 +12,17 @@ export const Route = createFileRoute("/library")({
   component: LibraryPage,
 });
 
+interface DocumentMetadata {
+  id: string;
+  filename: string | null;
+  file_type: string;
+  status: string;
+  created_at: string;
+  extracted_text?: string;
+}
+
 function LibraryPage() {
-  const [docs, setDocs] = useState<any[]>([]);
+  const [docs, setDocs] = useState<DocumentMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadDocs() {
@@ -58,8 +67,12 @@ function LibraryPage() {
             </Link>
           </div>
           <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">Workspace</Link>
-            <Link to="/history" className="hover:text-foreground">History</Link>
+            <Link to="/" className="hover:text-foreground">
+              Workspace
+            </Link>
+            <Link to="/history" className="hover:text-foreground">
+              History
+            </Link>
           </nav>
         </div>
       </header>
@@ -83,7 +96,7 @@ function LibraryPage() {
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {docs.map((doc: any) => (
+            {docs.map((doc) => (
               <div
                 key={doc.id}
                 className="group rounded-md border border-border bg-card p-5 transition-shadow hover:shadow-md"
@@ -102,15 +115,14 @@ function LibraryPage() {
                       </p>
                       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                         {doc.file_type || "text"} ·{" "}
-                        {doc.created_at
-                          ? format(new Date(doc.created_at), "MMM d, yyyy")
-                          : "—"}
+                        {doc.created_at ? format(new Date(doc.created_at), "MMM d, yyyy") : "—"}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => handleDelete(doc.id)}
-                    className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="Delete document"
+                    className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-destructive outline-none hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash size={14} />
                   </button>
