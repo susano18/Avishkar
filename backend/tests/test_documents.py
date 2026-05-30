@@ -104,6 +104,31 @@ async def test_get_document_not_found(client: AsyncClient, auth_headers: dict):
     assert response.status_code == 404
 
 
+# ---------------------------------------------------------------------------
+# Upload tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_upload_file_too_large(client: AsyncClient, auth_headers: dict):
+    """Test that uploading a file exceeding the size limit returns 413."""
+    from unittest.mock import patch, PropertyMock
+
+    # Patch max_upload_size_bytes property on the Settings class
+    # Pydantic v2 properties are sometimes tricky to patch on instances,
+    # but patching it via PropertyMock on the class usually works.
+    with patch("app.config.Settings.max_upload_size_bytes", new_callable=PropertyMock) as mock_size:
+        mock_size.return_value = 0
+
+        files = {"file": ("large.txt", b"some content", "text/plain")}
+        response = await client.post(
+            "/api/v1/documents/upload",
+            headers=auth_headers,
+            files=files
+        )
+        assert response.status_code == 413
+        assert "exceeds the maximum upload size" in response.json()["message"].lower()
+
+
 @pytest.mark.asyncio
 async def test_get_document_other_user(
     client: AsyncClient, auth_headers: dict,
