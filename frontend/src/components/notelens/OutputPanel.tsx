@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Download } from "lucide-react";
+import { Download, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   topics: string;
@@ -8,19 +10,27 @@ type Props = {
   error: string | null;
 };
 
+// Sanitize function to remove any accidental LLM chatter or echo
+const sanitize = (text: string) => {
+  return text
+    .replace(/^You are a precision academic parser\..*$/gm, "")
+    .replace(/^You are an inclusive academic filter.*$/gm, "")
+    .replace(/^===.*===$/gm, "")
+    .trim();
+};
+
 export function OutputPanel({ topics, filtered, loading, error }: Props) {
+  const [copied, setCopied] = useState(false);
   const empty = !loading && !error && !topics && !filtered;
 
-  const handleDownload = () => {
-    // Sanitize function to remove any accidental LLM chatter or echo
-    const sanitize = (text: string) => {
-      return text
-        .replace(/^You are a precision academic parser\..*$/gm, "")
-        .replace(/^You are an inclusive academic filter.*$/gm, "")
-        .replace(/^===.*===$/gm, "")
-        .trim();
-    };
+  useEffect(() => {
+    if (copied) {
+      const timeout = setTimeout(() => setCopied(false), 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [copied]);
 
+  const handleDownload = () => {
     const cleanTopics = sanitize(topics);
     const cleanFiltered = sanitize(filtered);
 
@@ -32,6 +42,20 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
     a.download = `codelens-report-${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleCopy = async () => {
+    const cleanTopics = sanitize(topics);
+    const cleanFiltered = sanitize(filtered);
+    const content = `# CodeLens Relevancy Report\n\n## Identified Syllabus Topics\n${cleanTopics}\n\n---\n\n## Filtered Study Notes\n${cleanFiltered}`;
+
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      toast.success("Copied to clipboard");
+    } catch (err) {
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   return (
@@ -46,13 +70,23 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
         </div>
         <div className="flex items-center gap-4">
           {(topics || filtered) && (
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
-            >
-              <Download size={14} />
-              Download .md
-            </button>
+            <>
+              <button
+                onClick={handleCopy}
+                aria-label={copied ? "Copied" : "Copy to clipboard"}
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              >
+                <Download size={14} />
+                Download .md
+              </button>
+            </>
           )}
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {loading ? "processing…" : filtered ? "complete" : "idle"}
