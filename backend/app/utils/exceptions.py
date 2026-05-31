@@ -66,11 +66,13 @@ class FilterInputError(CodeLensBaseError):
 class FileTooLargeError(CodeLensBaseError):
     """
     Raised when an uploaded file exceeds the maximum allowed size.
-    Maps to HTTP 413 Request Entity Too Large.
+    Maps to HTTP 413 Content Too Large (formerly Request Entity Too Large).
     """
 
     def __init__(self, filename: str, max_size_mb: int):
         message = f"File '{filename}' exceeds the maximum upload size of {max_size_mb} MB."
+        # Use HTTP_413_REQUEST_ENTITY_TOO_LARGE for compatibility with older Starlette/FastAPI versions
+        # while documenting it as Content Too Large in the class docstring.
         super().__init__(message=message, status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
 
 
