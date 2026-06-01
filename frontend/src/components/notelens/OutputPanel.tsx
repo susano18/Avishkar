@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Download } from "lucide-react";
+import { Download, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   topics: string;
@@ -8,23 +10,48 @@ type Props = {
   error: string | null;
 };
 
+/**
+ * Sanitize function to remove any accidental LLM chatter or echo.
+ * Extracted to module scope for reusability and cleaner component logic.
+ */
+const sanitize = (text: string) => {
+  return text
+    .replace(/^You are a precision academic parser\..*$/gm, "")
+    .replace(/^You are an inclusive academic filter.*$/gm, "")
+    .replace(/^===.*===$/gm, "")
+    .trim();
+};
+
 export function OutputPanel({ topics, filtered, loading, error }: Props) {
+  const [copied, setCopied] = useState(false);
   const empty = !loading && !error && !topics && !filtered;
 
-  const handleDownload = () => {
-    // Sanitize function to remove any accidental LLM chatter or echo
-    const sanitize = (text: string) => {
-      return text
-        .replace(/^You are a precision academic parser\..*$/gm, "")
-        .replace(/^You are an inclusive academic filter.*$/gm, "")
-        .replace(/^===.*===$/gm, "")
-        .trim();
-    };
+  useEffect(() => {
+    if (copied) {
+      const timeout = setTimeout(() => setCopied(false), 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [copied]);
 
+  const getCombinedContent = () => {
     const cleanTopics = sanitize(topics);
     const cleanFiltered = sanitize(filtered);
+    return `# CodeLens Relevancy Report\n\n## Identified Syllabus Topics\n${cleanTopics}\n\n---\n\n## Filtered Study Notes\n${cleanFiltered}`;
+  };
 
-    const content = `# CodeLens Relevancy Report\n\n## Identified Syllabus Topics\n${cleanTopics}\n\n---\n\n## Filtered Study Notes\n${cleanFiltered}`;
+  const handleCopy = async () => {
+    const content = getCombinedContent();
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      toast.success("Copied to clipboard");
+    } catch (err) {
+      toast.error("Failed to copy");
+    }
+  };
+
+  const handleDownload = () => {
+    const content = getCombinedContent();
     const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -44,15 +71,26 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">03</span>
           <h2 className="font-display text-3xl">Filtered Output</h2>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {(topics || filtered) && (
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
-            >
-              <Download size={14} />
-              Download .md
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Copy report to clipboard"
+              >
+                {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Download report as markdown"
+              >
+                <Download size={14} />
+                Download .md
+              </button>
+            </div>
           )}
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {loading ? "processing…" : filtered ? "complete" : "idle"}
