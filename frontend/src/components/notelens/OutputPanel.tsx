@@ -1,5 +1,6 @@
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Download } from "lucide-react";
+import { Download, Copy, Check } from "lucide-react";
 
 type Props = {
   topics: string;
@@ -8,23 +9,35 @@ type Props = {
   error: string | null;
 };
 
+// Sanitize function to remove any accidental LLM chatter or echo
+const sanitize = (text: string) => {
+  return text
+    .replace(/^You are a precision academic parser\..*$/gm, "")
+    .replace(/^You are an inclusive academic filter.*$/gm, "")
+    .replace(/^===.*===$/gm, "")
+    .trim();
+};
+
+const generateReport = (topics: string, filtered: string) => {
+  const cleanTopics = sanitize(topics);
+  const cleanFiltered = sanitize(filtered);
+  return `# CodeLens Relevancy Report\n\n## Identified Syllabus Topics\n${cleanTopics}\n\n---\n\n## Filtered Study Notes\n${cleanFiltered}`;
+};
+
 export function OutputPanel({ topics, filtered, loading, error }: Props) {
+  const [copied, setCopied] = useState(false);
   const empty = !loading && !error && !topics && !filtered;
 
+  const handleCopy = () => {
+    const content = generateReport(topics, filtered);
+
+    void navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleDownload = () => {
-    // Sanitize function to remove any accidental LLM chatter or echo
-    const sanitize = (text: string) => {
-      return text
-        .replace(/^You are a precision academic parser\..*$/gm, "")
-        .replace(/^You are an inclusive academic filter.*$/gm, "")
-        .replace(/^===.*===$/gm, "")
-        .trim();
-    };
-
-    const cleanTopics = sanitize(topics);
-    const cleanFiltered = sanitize(filtered);
-
-    const content = `# CodeLens Relevancy Report\n\n## Identified Syllabus Topics\n${cleanTopics}\n\n---\n\n## Filtered Study Notes\n${cleanFiltered}`;
+    const content = generateReport(topics, filtered);
     const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -46,13 +59,22 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
         </div>
         <div className="flex items-center gap-4">
           {(topics || filtered) && (
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
-            >
-              <Download size={14} />
-              Download .md
-            </button>
+            <>
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Download size={14} />
+                Download .md
+              </button>
+            </>
           )}
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {loading ? "processing…" : filtered ? "complete" : "idle"}
@@ -105,7 +127,7 @@ export function OutputPanel({ topics, filtered, loading, error }: Props) {
 
 function SkeletonLines({ n }: { n: number }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" role="status" aria-label="Loading content">
       {Array.from({ length: n }).map((_, i) => (
         <div
           key={i}
