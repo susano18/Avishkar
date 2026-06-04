@@ -11,11 +11,17 @@ export async function extractPdfText(file: File): Promise<string> {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
     const text = content.items
-      .map((it: unknown) => (typeof (it as { str?: string }).str === "string" ? (it as { str: string }).str : ""))
+      .map((it: unknown) =>
+        typeof (it as { str?: string }).str === "string" ? (it as { str: string }).str : "",
+      )
       .join(" ");
     out.push(text);
   }
-  const joined = out.join("\n\n").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  const joined = out
+    .join("\n\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (!joined) throw new Error("PDF contains no extractable text. OCR is not supported.");
   return joined;
 }
