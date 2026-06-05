@@ -50,6 +50,7 @@ class DocumentResponse(BaseModel):
     filename: str = Field(..., description="Original uploaded filename.")
     file_type: FileType = Field(..., description="Detected file type.")
     extracted_text: str | None = Field(None, description="Extracted text content (if processed).")
+    extracted_text_length: int = Field(0, description="Length of extracted text.")
     status: ProcessingStatus = Field(..., description="Current processing status.")
     error_message: str | None = Field(None, description="Error details if processing failed.")
     created_at: datetime = Field(..., description="Upload timestamp.")
@@ -57,11 +58,28 @@ class DocumentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DocumentMetadataResponse(BaseModel):
+    """
+    Lean schema for document listings.
+    Excludes large text fields to reduce payload size.
+    """
+
+    id: str
+    user_id: str
+    filename: str
+    file_type: FileType
+    extracted_text_length: int
+    status: ProcessingStatus
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class DocumentListResponse(BaseModel):
     """Schema for a paginated list of documents."""
 
-    documents: list[DocumentResponse] = Field(
-        ..., description="List of document records."
+    documents: list[DocumentMetadataResponse] = Field(
+        ..., description="List of document records (metadata only)."
     )
     total: int = Field(..., description="Total number of documents.")
     page: int = Field(..., description="Current page number (1-indexed).")
