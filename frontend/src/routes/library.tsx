@@ -12,8 +12,17 @@ export const Route = createFileRoute("/library")({
   component: LibraryPage,
 });
 
+interface DocumentMetadata {
+  id: string;
+  filename: string;
+  file_type: "text" | "audio" | "pdf";
+  created_at: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  extracted_text_length: number;
+}
+
 function LibraryPage() {
-  const [docs, setDocs] = useState<any[]>([]);
+  const [docs, setDocs] = useState<DocumentMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadDocs() {
@@ -83,7 +92,7 @@ function LibraryPage() {
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {docs.map((doc: any) => (
+            {docs.map((doc) => (
               <div
                 key={doc.id}
                 className="group rounded-md border border-border bg-card p-5 transition-shadow hover:shadow-md"
@@ -116,9 +125,11 @@ function LibraryPage() {
                   </button>
                 </div>
                 <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-                  {doc.extracted_text
-                    ? `${doc.extracted_text.length.toLocaleString()} chars extracted`
-                    : "Processing…"}
+                  {doc.status === "completed"
+                    ? `${doc.extracted_text_length.toLocaleString()} chars extracted`
+                    : doc.status === "failed"
+                      ? "Processing failed"
+                      : "Processing…"}
                 </p>
               </div>
             ))}
