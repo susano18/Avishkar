@@ -43,3 +43,14 @@ export async function fetchWithAuth(
   }
   return fetch(`${API_URL}${path}`, { ...options, headers });
 }
+
+export interface DocumentMetadata {
+  id: string;
+  user_id: string;
+  filename: string;
+  file_type: "text" | "audio" | "pdf";
+  extracted_text_length: number;
+  status: "pending" | "processing" | "completed" | "failed";
+  error_message?: string;
+  created_at: string;
+}
