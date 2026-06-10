@@ -178,10 +178,10 @@ async def transcribe_audio(file_path: str | Path) -> str:
                 )
             return str(transcript).strip()
         except Exception as e:
+            logger.error("audio_transcription_failed", filename=file_path.name, error=str(e))
             raise TranscriptionError(
-                f"Audio transcription failed for '{file_path.name}': {e}. "
-                "Note: Audio transcription requires an OpenAI API key (not OpenRouter). "
-                "Set OPENAI_API_KEY or upload a PDF/text file instead."
+                f"Audio transcription failed for '{file_path.name}'. "
+                "Ensure your API configuration is correct and supports audio processing."
             ) from e
 
     # Run blocking I/O in a thread so we don't block the event loop
