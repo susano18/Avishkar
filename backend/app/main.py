@@ -18,6 +18,7 @@ from app.api.router import api_router
 from app.config import get_settings
 from app.database import create_tables
 from app.middleware.logging_middleware import LoggingMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.utils.exceptions import CodeLensBaseError
 
 settings = get_settings()
@@ -120,6 +121,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security headers
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Structured request/response logging
 app.add_middleware(LoggingMiddleware)
