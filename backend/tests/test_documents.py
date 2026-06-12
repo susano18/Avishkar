@@ -67,6 +67,12 @@ async def test_list_documents_with_data(
     assert data["total"] == 2
     assert len(data["documents"]) == 2
 
+    # Verify optimization: extracted_text should be excluded, length included
+    doc = data["documents"][0]
+    assert "extracted_text" not in doc
+    assert "extracted_text_length" in doc
+    assert doc["extracted_text_length"] == len("Sample extracted text content.")
+
 
 @pytest.mark.asyncio
 async def test_list_documents_unauthenticated(client: AsyncClient):
