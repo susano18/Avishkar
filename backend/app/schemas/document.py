@@ -43,7 +43,7 @@ class TextProcessRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 class DocumentResponse(BaseModel):
-    """Schema for a single document's details."""
+    """Schema for a single document's full details."""
 
     id: str = Field(..., description="Unique document identifier (UUID).")
     user_id: str = Field(..., description="Owner's user ID.")
@@ -57,10 +57,28 @@ class DocumentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class DocumentListResponse(BaseModel):
-    """Schema for a paginated list of documents."""
+class DocumentSlimResponse(BaseModel):
+    """
+    Schema for document metadata without large text fields.
+    Used for listing documents efficiently.
+    """
 
-    documents: list[DocumentResponse] = Field(
+    id: str = Field(..., description="Unique document identifier (UUID).")
+    user_id: str = Field(..., description="Owner's user ID.")
+    filename: str = Field(..., description="Original uploaded filename.")
+    file_type: FileType = Field(..., description="Detected file type.")
+    extracted_text_length: int = Field(0, description="Length of extracted text.")
+    status: ProcessingStatus = Field(..., description="Current processing status.")
+    error_message: str | None = Field(None, description="Error details if processing failed.")
+    created_at: datetime = Field(..., description="Upload timestamp.")
+
+    model_config = {"from_attributes": True}
+
+
+class DocumentListResponse(BaseModel):
+    """Schema for a paginated list of documents (using slim metadata)."""
+
+    documents: list[DocumentSlimResponse] = Field(
         ..., description="List of document records."
     )
     total: int = Field(..., description="Total number of documents.")
