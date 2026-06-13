@@ -29,7 +29,7 @@ from app.schemas.document import (
 from app.services.auth_service import get_current_user
 from app.services.input_handler import process_uploaded_file
 from app.services.llm_client import send_prompt
-from app.utils.exceptions import UnsupportedFileTypeError
+from app.utils.exceptions import FileTooLargeError, UnsupportedFileTypeError
 from app.utils.helpers import (
     detect_file_type,
     ensure_upload_dir,
@@ -57,6 +57,22 @@ async def upload_document(
 ) -> DocumentUploadResponse:
     """Upload a file, extract text, and create a document record."""
     filename = file.filename or "unknown"
+
+    # Validate file size (PRD §6.4 - Security: Prevent DoS via large uploads)
+    # Using seek/tell to determine size as UploadFile.size is not always reliable
+    # In FastAPI 0.136.3, we use the underlying file object for seek/tell
+    file.file.seek(0, 2)
+    size_bytes = file.file.tell()
+    file.file.seek(0)
+
+    if size_bytes > settings.max_upload_size_bytes:
+        logger.warning(
+            "upload_rejected_size",
+            filename=filename,
+            size_mb=round(size_bytes / (1024 * 1024), 2),
+            limit_mb=settings.MAX_UPLOAD_SIZE_MB,
+        )
+        raise FileTooLargeError(filename, settings.MAX_UPLOAD_SIZE_MB)
 
     # Validate file type
     if not is_supported_file(filename):
