@@ -1,0 +1,3 @@
+## 2026-06-15 - [Safety barriers for destructive actions]
+**Learning:** Destructive actions like document deletion should always be guarded by a confirmation dialog to prevent accidental data loss. Using existing UI primitives like Radix AlertDialog ensures consistency with other parts of the app (e.g., the History page) and provides a polished feel compared to native browser dialogs.
+**Action:** Always audit the codebase for established architectural patterns (like AlertDialog in history.tsx) when adding new destructive features. Ensure all icon-only buttons include ARIA labels and are accessible via keyboard using focus-visible styles.
