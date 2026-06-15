@@ -70,8 +70,12 @@ function HistoryPage() {
             </Link>
           </div>
           <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            <Link to="/library" className="hover:text-foreground">Library</Link>
-            <Link to="/" className="hover:text-foreground">Workspace</Link>
+            <Link to="/library" className="hover:text-foreground">
+              Library
+            </Link>
+            <Link to="/" className="hover:text-foreground">
+              Workspace
+            </Link>
           </nav>
         </div>
       </header>
@@ -145,13 +149,17 @@ function HistoryPage() {
                 </summary>
                 <div className="border-t border-border grid gap-6 md:grid-cols-2 p-6">
                   <div>
-                    <h3 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground border-b border-border/50 pb-2">Identified Topics</h3>
+                    <h3 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground border-b border-border/50 pb-2">
+                      Identified Topics
+                    </h3>
                     <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-foreground">
                       <ReactMarkdown>{r.identified_topics || ""}</ReactMarkdown>
                     </div>
                   </div>
                   <div>
-                    <h3 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground border-b border-border/50 pb-2">Filtered Notes</h3>
+                    <h3 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground border-b border-border/50 pb-2">
+                      Filtered Notes
+                    </h3>
                     <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-foreground">
                       <ReactMarkdown>{r.filtered_notes || ""}</ReactMarkdown>
                     </div>
