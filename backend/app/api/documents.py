@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import defer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import structlog
@@ -170,6 +171,7 @@ async def list_documents(
     result = await db.execute(
         select(Document)
         .where(Document.user_id == current_user.id)
+        .options(defer(Document.extracted_text))
         .order_by(Document.created_at.desc())
         .offset(offset)
         .limit(page_size)
@@ -177,7 +179,7 @@ async def list_documents(
     documents = result.scalars().all()
 
     return DocumentListResponse(
-        documents=[DocumentResponse.model_validate(d) for d in documents],
+        documents=documents,
         total=total,
         page=page,
         page_size=page_size,
