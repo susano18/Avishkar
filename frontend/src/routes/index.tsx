@@ -46,7 +46,12 @@ function Index() {
     setProgress(0);
 
     try {
-      const payload: any = {};
+      const payload: {
+        syllabus_doc_id?: string;
+        syllabus_text?: string;
+        notes_doc_id?: string;
+        notes_text?: string;
+      } = {};
 
       // Determine if text or doc_id
       if (syllabus.startsWith("DOC-")) {
@@ -139,13 +144,13 @@ function Index() {
               ── A deterministic pipeline, not AI magic
             </p>
             <h1 className="font-display text-5xl leading-[0.95] md:text-7xl">
-              Reduce your notes to <em className="text-accent">only</em> what the syllabus
-              actually asks for.
+              Reduce your notes to <em className="text-accent">only</em> what the syllabus actually
+              asks for.
             </h1>
             <p className="mt-6 max-w-xl font-mono text-[13px] leading-relaxed text-muted-foreground">
-              Drop in a syllabus and a pile of notes. Two scoped LLM passes: extract topics,
-              then keep or remove each section. Structure preserved. No rewrites. No
-              hallucinated content.
+              Drop in a syllabus and a pile of notes. Two scoped LLM passes: extract topics, then
+              keep or remove each section. Structure preserved. No rewrites. No hallucinated
+              content.
             </p>
           </div>
           <aside className="self-end border-l border-border pl-6 font-mono text-[11px] leading-relaxed text-muted-foreground">
@@ -227,9 +232,7 @@ function Index() {
           <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent">
             ── Design principles
           </p>
-          <h2 className="mt-3 font-display text-4xl md:text-5xl">
-            Pipeline over abstraction.
-          </h2>
+          <h2 className="mt-3 font-display text-4xl md:text-5xl">Pipeline over abstraction.</h2>
           <div className="mt-10 grid gap-10 md:grid-cols-3">
             {PRINCIPLES.map((p, i) => (
               <div key={p.title} className="border-t border-border pt-5">
