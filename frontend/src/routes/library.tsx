@@ -12,8 +12,17 @@ export const Route = createFileRoute("/library")({
   component: LibraryPage,
 });
 
+interface DocumentMetadata {
+  id: string;
+  filename: string;
+  file_type: "pdf" | "audio" | "text";
+  extracted_text_length: number | null;
+  status: "pending" | "processing" | "completed" | "failed";
+  created_at: string;
+}
+
 function LibraryPage() {
-  const [docs, setDocs] = useState<any[]>([]);
+  const [docs, setDocs] = useState<DocumentMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadDocs() {
@@ -58,8 +67,12 @@ function LibraryPage() {
             </Link>
           </div>
           <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">Workspace</Link>
-            <Link to="/history" className="hover:text-foreground">History</Link>
+            <Link to="/" className="hover:text-foreground">
+              Workspace
+            </Link>
+            <Link to="/history" className="hover:text-foreground">
+              History
+            </Link>
           </nav>
         </div>
       </header>
@@ -83,7 +96,7 @@ function LibraryPage() {
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {docs.map((doc: any) => (
+            {docs.map((doc) => (
               <div
                 key={doc.id}
                 className="group rounded-md border border-border bg-card p-5 transition-shadow hover:shadow-md"
@@ -102,9 +115,7 @@ function LibraryPage() {
                       </p>
                       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                         {doc.file_type || "text"} ·{" "}
-                        {doc.created_at
-                          ? format(new Date(doc.created_at), "MMM d, yyyy")
-                          : "—"}
+                        {doc.created_at ? format(new Date(doc.created_at), "MMM d, yyyy") : "—"}
                       </p>
                     </div>
                   </div>
@@ -116,9 +127,11 @@ function LibraryPage() {
                   </button>
                 </div>
                 <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-                  {doc.extracted_text
-                    ? `${doc.extracted_text.length.toLocaleString()} chars extracted`
-                    : "Processing…"}
+                  {doc.status === "completed"
+                    ? `${(doc.extracted_text_length || 0).toLocaleString()} chars extracted`
+                    : doc.status === "failed"
+                      ? "Processing failed"
+                      : "Processing…"}
                 </p>
               </div>
             ))}
