@@ -31,10 +31,16 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "CodeLens" },
-      { name: "description", content: "CodeLens — Top-tier Academic Study Assistant with Syllabus Filter" },
+      {
+        name: "description",
+        content: "CodeLens — Top-tier Academic Study Assistant with Syllabus Filter",
+      },
       { name: "author", content: "CodeLens" },
       { property: "og:title", content: "CodeLens" },
-      { property: "og:description", content: "CodeLens — Top-tier Academic Study Assistant with Syllabus Filter" },
+      {
+        property: "og:description",
+        content: "CodeLens — Top-tier Academic Study Assistant with Syllabus Filter",
+      },
       { property: "og:type", content: "website" },
     ],
     links: [
