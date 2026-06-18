@@ -82,10 +82,14 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              <label
+                htmlFor="email"
+                className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+              >
                 Email
               </label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -95,10 +99,14 @@ function LoginPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              <label
+                htmlFor="password"
+                className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+              >
                 Password
               </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
