@@ -116,8 +116,8 @@ function LibraryPage() {
                   </button>
                 </div>
                 <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-                  {doc.extracted_text
-                    ? `${doc.extracted_text.length.toLocaleString()} chars extracted`
+                  {doc.status === "completed"
+                    ? `${(doc.extracted_text_length || 0).toLocaleString()} chars extracted`
                     : "Processing…"}
                 </p>
               </div>
