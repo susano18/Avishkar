@@ -4,6 +4,17 @@ import { fetchWithAuth } from "@/lib/api";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Trash, FileText, Mic } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -12,8 +23,17 @@ export const Route = createFileRoute("/library")({
   component: LibraryPage,
 });
 
+interface DocumentMetadata {
+  id: string;
+  filename: string;
+  file_type: "text" | "audio" | "pdf";
+  created_at: string;
+  extracted_text?: string;
+  status: "pending" | "processing" | "completed" | "failed";
+}
+
 function LibraryPage() {
-  const [docs, setDocs] = useState<any[]>([]);
+  const [docs, setDocs] = useState<DocumentMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadDocs() {
@@ -83,7 +103,7 @@ function LibraryPage() {
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {docs.map((doc: any) => (
+            {docs.map((doc) => (
               <div
                 key={doc.id}
                 className="group rounded-md border border-border bg-card p-5 transition-shadow hover:shadow-md"
@@ -102,18 +122,38 @@ function LibraryPage() {
                       </p>
                       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                         {doc.file_type || "text"} ·{" "}
-                        {doc.created_at
-                          ? format(new Date(doc.created_at), "MMM d, yyyy")
-                          : "—"}
+                        {doc.created_at ? format(new Date(doc.created_at), "MMM d, yyyy") : "—"}
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash size={14} />
-                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        aria-label="Delete document"
+                        className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete "{doc.filename || "this document"}" and its
+                          extracted text. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(doc.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
                 <p className="mt-3 font-mono text-[11px] text-muted-foreground">
                   {doc.extracted_text
