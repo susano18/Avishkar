@@ -10,8 +10,8 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship, column_property, deferred
 from typing import Optional
 
 from app.database import Base
@@ -71,7 +71,10 @@ class Document(Base):
         String(500), nullable=True
     )
     extracted_text: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True
+        Text, nullable=True, deferred=True
+    )
+    extracted_text_length: Mapped[Optional[int]] = column_property(
+        func.length(extracted_text)
     )
     status: Mapped[ProcessingStatus] = mapped_column(
         Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
