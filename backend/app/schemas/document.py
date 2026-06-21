@@ -42,6 +42,21 @@ class TextProcessRequest(BaseModel):
 # Response Schemas
 # ---------------------------------------------------------------------------
 
+class DocumentSlimResponse(BaseModel):
+    """Slim schema for document listing, excluding large text content."""
+
+    id: str = Field(..., description="Unique document identifier (UUID).")
+    user_id: str = Field(..., description="Owner's user ID.")
+    filename: str = Field(..., description="Original uploaded filename.")
+    file_type: FileType = Field(..., description="Detected file type.")
+    extracted_text_length: int | None = Field(None, description="Length of extracted text.")
+    status: ProcessingStatus = Field(..., description="Current processing status.")
+    error_message: str | None = Field(None, description="Error details if processing failed.")
+    created_at: datetime = Field(..., description="Upload timestamp.")
+
+    model_config = {"from_attributes": True}
+
+
 class DocumentResponse(BaseModel):
     """Schema for a single document's details."""
 
@@ -60,7 +75,7 @@ class DocumentResponse(BaseModel):
 class DocumentListResponse(BaseModel):
     """Schema for a paginated list of documents."""
 
-    documents: list[DocumentResponse] = Field(
+    documents: list[DocumentSlimResponse] = Field(
         ..., description="List of document records."
     )
     total: int = Field(..., description="Total number of documents.")
