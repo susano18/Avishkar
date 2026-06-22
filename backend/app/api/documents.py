@@ -29,7 +29,7 @@ from app.schemas.document import (
 from app.services.auth_service import get_current_user
 from app.services.input_handler import process_uploaded_file
 from app.services.llm_client import send_prompt
-from app.utils.exceptions import UnsupportedFileTypeError
+from app.utils.exceptions import FileTooLargeError, UnsupportedFileTypeError
 from app.utils.helpers import (
     detect_file_type,
     ensure_upload_dir,
@@ -62,6 +62,21 @@ async def upload_document(
     if not is_supported_file(filename):
         raise UnsupportedFileTypeError(filename)
 
+    # Validate file size (Security Enhancement: Prevent DoS via disk exhaustion)
+    # Using synchronous seek/tell on the underlying file object for reliability
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    if file_size > settings.max_upload_size_bytes:
+        logger.warning(
+            "file_too_large",
+            filename=filename,
+            size_bytes=file_size,
+            max_size_mb=settings.MAX_UPLOAD_SIZE_MB,
+        )
+        raise FileTooLargeError(filename, settings.MAX_UPLOAD_SIZE_MB)
+
     # Detect file type
     file_type_str = detect_file_type(filename)
     file_type = FileType(file_type_str)
@@ -87,9 +102,11 @@ async def upload_document(
         doc.file_path = str(file_path)
     except Exception as e:
         doc.status = ProcessingStatus.FAILED
-        doc.error_message = f"Failed to save file: {e}"
+        doc.error_message = f"Internal file save error: {str(e)}"
         await db.flush()
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+        logger.error("file_save_failed", doc_id=doc.id, error=str(e))
+        # Secure error handling: return generic message to client to avoid system leakage
+        raise HTTPException(status_code=500, detail="Failed to save file to server storage.")
 
     # Extract text (runs blocking IO in thread pool via process_uploaded_file)
     try:
