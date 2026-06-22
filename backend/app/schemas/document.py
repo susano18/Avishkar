@@ -57,11 +57,33 @@ class DocumentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DocumentSlimResponse(BaseModel):
+    """
+    Optimized schema for document listings.
+
+    Excludes the heavy 'extracted_text' field to reduce payload size,
+    providing only the length of the text for UI metadata.
+    """
+
+    id: str = Field(..., description="Unique document identifier (UUID).")
+    user_id: str = Field(..., description="Owner's user ID.")
+    filename: str = Field(..., description="Original uploaded filename.")
+    file_type: FileType = Field(..., description="Detected file type.")
+    extracted_text_length: int | None = Field(
+        None, description="Length of extracted text (if processed)."
+    )
+    status: ProcessingStatus = Field(..., description="Current processing status.")
+    error_message: str | None = Field(None, description="Error details if processing failed.")
+    created_at: datetime = Field(..., description="Upload timestamp.")
+
+    model_config = {"from_attributes": True}
+
+
 class DocumentListResponse(BaseModel):
     """Schema for a paginated list of documents."""
 
-    documents: list[DocumentResponse] = Field(
-        ..., description="List of document records."
+    documents: list[DocumentSlimResponse] = Field(
+        ..., description="List of document records (optimized slim version)."
     )
     total: int = Field(..., description="Total number of documents.")
     page: int = Field(..., description="Current page number (1-indexed).")
