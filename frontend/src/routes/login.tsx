@@ -82,10 +82,14 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              <label
+                htmlFor="email"
+                className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+              >
                 Email
               </label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -95,10 +99,14 @@ function LoginPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              <label
+                htmlFor="password"
+                className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+              >
                 Password
               </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -111,7 +119,7 @@ function LoginPage() {
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-sm bg-foreground py-3 font-mono text-[11px] uppercase tracking-[0.25em] text-background transition-all hover:bg-accent disabled:opacity-50"
+              className="w-full rounded-sm bg-foreground py-3 font-mono text-[11px] uppercase tracking-[0.25em] text-background transition-all hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-50"
             >
               {busy ? "please wait…" : isLogin ? "Log in" : "Sign up"}
             </button>
