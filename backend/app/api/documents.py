@@ -62,6 +62,14 @@ async def upload_document(
     if not is_supported_file(filename):
         raise UnsupportedFileTypeError(filename)
 
+    # Validate file size
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > settings.max_upload_size_bytes:
+        from app.utils.exceptions import FileTooLargeError
+        raise FileTooLargeError(filename, settings.MAX_UPLOAD_SIZE_MB)
+
     # Detect file type
     file_type_str = detect_file_type(filename)
     file_type = FileType(file_type_str)
@@ -87,9 +95,13 @@ async def upload_document(
         doc.file_path = str(file_path)
     except Exception as e:
         doc.status = ProcessingStatus.FAILED
-        doc.error_message = f"Failed to save file: {e}"
+        doc.error_message = str(e)
         await db.flush()
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+        logger.error("file_save_failed", doc_id=doc.id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save uploaded file to storage.",
+        )
 
     # Extract text (runs blocking IO in thread pool via process_uploaded_file)
     try:
