@@ -10,8 +10,8 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy.orm import Mapped, column_property, deferred, mapped_column, relationship
 from typing import Optional
 
 from app.database import Base
@@ -70,8 +70,15 @@ class Document(Base):
     file_path: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True
     )
-    extracted_text: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True
+    # Optimization: Defer loading of extracted_text (large blob) to reduce
+    # memory and network payload in list views.
+    extracted_text: Mapped[Optional[str]] = deferred(
+        mapped_column(Text, nullable=True)
+    )
+    # Add server-side length calculation for display in lists without
+    # needing the full text content.
+    extracted_text_length: Mapped[int] = column_property(
+        func.coalesce(func.length(extracted_text), 0)
     )
     status: Mapped[ProcessingStatus] = mapped_column(
         Enum(ProcessingStatus), default=ProcessingStatus.PENDING, nullable=False
