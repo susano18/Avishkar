@@ -29,7 +29,7 @@ from app.schemas.document import (
 from app.services.auth_service import get_current_user
 from app.services.input_handler import process_uploaded_file
 from app.services.llm_client import send_prompt
-from app.utils.exceptions import UnsupportedFileTypeError
+from app.utils.exceptions import FileTooLargeError, UnsupportedFileTypeError
 from app.utils.helpers import (
     detect_file_type,
     ensure_upload_dir,
@@ -61,6 +61,21 @@ async def upload_document(
     # Validate file type
     if not is_supported_file(filename):
         raise UnsupportedFileTypeError(filename)
+
+    # Validate file size
+    # seek(0, 2) moves to the end of the file, tell() returns the position
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)  # Reset to beginning
+
+    if file_size > settings.max_upload_size_bytes:
+        logger.warning(
+            "upload_rejected_too_large",
+            filename=filename,
+            size_bytes=file_size,
+            max_bytes=settings.max_upload_size_bytes,
+        )
+        raise FileTooLargeError(filename, settings.MAX_UPLOAD_SIZE_MB)
 
     # Detect file type
     file_type_str = detect_file_type(filename)
